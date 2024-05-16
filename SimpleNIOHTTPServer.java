@@ -9,6 +9,7 @@ class SimpleNIOHTTPServer implements HTTPServerHandler {
 
     private String bindAddress;
     private int bindPort;
+    private Selector selector;
 
     //TODO 
     public SimpleNIOHTTPServer(String bindAddress, int bindPort){
@@ -25,7 +26,41 @@ class SimpleNIOHTTPServer implements HTTPServerHandler {
      * Wrapper instance method for running server
      */
     public void run(){
-    
-    };
-    
+        try {
+            this.selector = Selector.open();
+
+            ServerSocketChannel serverChannel = ServerSocketChannel.open();
+            serverChannel.configureBlocking(False);
+            InetSocketAddress hostAddress = new InetSocketAddress(this.bindAddress, this.bindPort);
+            serverChannel.socket().bind(hostAddress);
+            serverChannel.register(this.selector, SelectionKey.OP_ACCEPT);
+
+            while (true) {
+                this.selector.select();
+                Set<SelectionKey> selectedKeys = this.selector.selectedKeys();
+                Iterator<SelectionKey> iterator = selectedKeys.iterator();
+
+                while (iterator.hasNext()) {
+                    SelectionKey Key = iterator.next();
+                    if (Key.isAcceptable()) {
+                        // accpt client connection
+                        SocketChannel Client = serverChannel.accept();
+                        client.configureBlocking(false);
+                        client.register(this.selector, SelectionKey.OP_READ);
+                    } else if (key.isReadable()) {
+                        SocketChannel client = (SocketChannel) Key.channel();
+                        ByteBuffer buffer = ByteBuffer.allocate(1024);
+                        client.read(buffer);
+                        String request = new String (buffer.array()).trim();
+
+                        // print reqest
+                        System.out.println("request: " + request);
+                    }
+                    iterator.remove();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    } 
 }
