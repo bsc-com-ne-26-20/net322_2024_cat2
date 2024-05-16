@@ -3,6 +3,9 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
+import java.io.*;
+import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
 
 class SimpleNIOHTTPServer implements HTTPServerHandler {
     
@@ -57,6 +60,34 @@ class SimpleNIOHTTPServer implements HTTPServerHandler {
                         ByteBuffer buffer = ByteBuffer.allocate(1024);
                         client.read(buffer);
                         String request = new String (buffer.array()).trim();
+
+                        String[] requestLines = request.split("\r\n");
+                        String[] requestLine = requestLines[0].split(" ");
+                        String method = requestLine[0];
+                        String path = requestLine[1];
+    
+                        if ("GET".equalsIgnoreCase(method)) {
+                            String filePath = "templates" + path;
+                            String response = "";
+    
+                            try {
+                                String content = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8);
+    
+                                response = "HTTP/1.1 200 OK\r\n" +
+                                        "Content-Type: text/html\r\n" +
+                                        "Content-Length: " + content.length() + "\r\n\r\n" +
+                                        content;
+                            } catch (IOException e) {
+                                response = "HTTP/1.1 404 Not Found\r\n" +
+                                        "Content-Type: text/html\r\n" +
+                                        "Content-Length: 0\r\n\r\n";
+                            }
+    
+                            ByteBuffer responseBuffer = ByteBuffer.wrap(response.getBytes());
+                            while (responseBuffer.hasRemaining()) {
+                                client.write(responseBuffer);
+                            }
+                        }
 
                         // print reqest
                         System.out.println("request: " + request);
